@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Registro de Mensajes - Demo</title>
+  <style>
+    body{ font-family: Arial, sans-serif; margin: 40px; }
+    input, button, textarea { padding: 8px; margin: 6px 0; }
+    #messages { margin-top: 20px; }
+    pre { background:#f7f7f7; padding:10px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h1>Registro de Mensajes (Distributed Workshop)</h1>
+
+  <label>Token (opcional si el backend requiere JWT):</label><br/>
+  <input id="token" placeholder="Bearer token (solo el token, no 'Bearer ')" style="width:80%"/><br/>
+
+  <input id="msg" placeholder="Escribe tu mensaje" style="width:60%"/>
+  <button id="send">Enviar</button>
+  <button id="refresh">Actualizar</button>
+
+  <div id="messages">
+    <h2>Últimos mensajes (formato vertical)</h2>
+    <pre id="list">Cargando...</pre>
+  </div>
+
+  <script>
+    const apiBase = '/api/messages';
+
+    async function send() {
+      const msg = document.getElementById('msg').value.trim();
+      const token = document.getElementById('token').value.trim();
+      if(!msg) return alert('Escribe un mensaje');
+
+      const headers = {'Content-Type':'application/json'};
+      if(token) headers['Authorization'] = 'Bearer ' + token;
+
+      const res = await fetch(apiBase, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({message: msg})
+      });
+
+      if (res.ok) {
+        document.getElementById('msg').value = '';
+        load();
+      } else {
+        const txt = await res.text();
+        alert('Error: ' + res.status + ' - ' + txt);
+      }
+    }
+
+    async function load() {
+      const token = document.getElementById('token').value.trim();
+      const headers = {};
+      if(token) headers['Authorization'] = 'Bearer ' + token;
+
+      // pedimos plain text para que llegue vertical
+      const res = await fetch(apiBase + '?format=plain', { headers });
+      if (res.ok) {
+        const txt = await res.text();
+        document.getElementById('list').textContent = txt || '(vacío)';
+      } else {
+        document.getElementById('list').textContent = 'Error: ' + res.status + ' - ' + await res.text();
+      }
+    }
+
+    document.getElementById('send').addEventListener('click', send);
+    document.getElementById('refresh').addEventListener('click', load);
+
+    // auto refresh cada 2s
+    setInterval(load, 2000);
+    load();
+  </script>
+</body>
+</html>
